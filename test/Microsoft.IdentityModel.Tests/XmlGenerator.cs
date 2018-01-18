@@ -442,5 +442,16 @@ namespace Microsoft.IdentityModel.Tests
         {
             return string.Format(TransformTemplate, prefix, element, attributeName, algorithm, @namespace);
         }
+
+        public static string TransformsXml(List<string> transforms)
+        {
+            var stringBuilder = new StringBuilder();
+            stringBuilder.Append($"<ds:Transforms xmlns:ds=\"{XmlSignatureConstants.Namespace}\">");
+            foreach (var transform in transforms)
+                stringBuilder.Append(transform);
+            stringBuilder.Append("</ds:Transforms >");
+
+            return stringBuilder.ToString();
+        }
     }
 }

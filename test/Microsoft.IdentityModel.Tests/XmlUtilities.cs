@@ -58,10 +58,8 @@ namespace Microsoft.IdentityModel.Tests
         {
             using (var stream = new MemoryStream())
             {
-                ExclusiveCanonicalizationTransform.WriteCanonicalStream(stream, CreateXmlTokenStream(xml), includeComments);
-                stream.Flush();
-                stream.Position = 0;
-                return Default.HashAlgorithm.ComputeHash(stream);
+                var transform = new ExclusiveCanonicalizationTransform(includeComments);
+                return transform.ProcessAndDigest(CreateXmlTokenStream(xml), Default.HashAlgorithm);
             }
         }
 

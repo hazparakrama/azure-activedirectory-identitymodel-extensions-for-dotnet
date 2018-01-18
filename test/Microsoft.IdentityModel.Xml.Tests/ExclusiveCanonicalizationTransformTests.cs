@@ -43,14 +43,15 @@ namespace Microsoft.IdentityModel.Tokens.Xml.Tests
         {
             var type = typeof(ExclusiveCanonicalizationTransform);
             var properties = type.GetProperties();
-            Assert.True(properties.Length == 2, $"Number of properties has changed from 2 to: {properties.Length}, adjust tests");
+            Assert.True(properties.Length == 3, $"Number of properties has changed from 3 to: {properties.Length}, adjust tests");
 
             var context = new GetSetContext
             {
                 PropertyNamesAndSetGetValue = new List<KeyValuePair<string, List<object>>>
                 {
+                    new KeyValuePair<string, List<object>>("Algorithm", new List<object>{SecurityAlgorithms.ExclusiveC14n, SecurityAlgorithms.ExclusiveC14nWithComments, SecurityAlgorithms.ExclusiveC14n }),
                     new KeyValuePair<string, List<object>>("IncludeComments", new List<object>{false, true}),
-                    new KeyValuePair<string, List<object>>("Algorithm", new List<object>{SecurityAlgorithms.ExclusiveC14n, SecurityAlgorithms.ExclusiveC14nWithComments, SecurityAlgorithms.ExclusiveC14n })
+                    new KeyValuePair<string, List<object>>("InclusivePrefixList", new List<object>{(string)null, "saml dsig wsfed", "saml2 dsig2 wsfed2" })
                 },
                 Object = new ExclusiveCanonicalizationTransform(false),
             };
@@ -61,9 +62,9 @@ namespace Microsoft.IdentityModel.Tokens.Xml.Tests
             {
                 PropertyNamesAndSetGetValue = new List<KeyValuePair<string, List<object>>>
                 {
-                    new KeyValuePair<string, List<object>>("IncludeComments", new List<object>{true, false, true}),
                     new KeyValuePair<string, List<object>>("Algorithm", new List<object>{SecurityAlgorithms.ExclusiveC14nWithComments, SecurityAlgorithms.ExclusiveC14n, SecurityAlgorithms.ExclusiveC14nWithComments }),
-
+                    new KeyValuePair<string, List<object>>("IncludeComments", new List<object>{true, false, true}),
+                    new KeyValuePair<string, List<object>>("InclusivePrefixList", new List<object>{(string)null, "saml dsig wsfed", "saml2 dsig2 wsfed2" })
                 },
                 Object = new ExclusiveCanonicalizationTransform(true),
             };

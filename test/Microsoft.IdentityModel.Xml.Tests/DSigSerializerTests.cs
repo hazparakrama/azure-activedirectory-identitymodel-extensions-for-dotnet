@@ -406,72 +406,16 @@ namespace Microsoft.IdentityModel.Xml.Tests
             };
         }
 
-        [Theory, MemberData(nameof(ReadTransformTheoryData))]
-        public void ReadTransform(DSigSerializerTheoryData theoryData)
-        {
-            TestUtilities.WriteHeader($"{this}.ReadTransform", theoryData);
-            var context = new CompareContext($"{this}.ReadTransform, {theoryData.TestId}");
-            try
-            {
-                var transform = theoryData.Serializer.ReadTransform(XmlUtilities.CreateDictionaryReader(theoryData.Xml));
-                theoryData.ExpectedException.ProcessNoException(context);
-                IdentityComparer.AreEqual(transform, theoryData.Transform, context);
-            }
-            catch (Exception ex)
-            {
-                theoryData.ExpectedException.ProcessException(ex, context.Diffs);
-            }
-
-            TestUtilities.AssertFailIfErrors(context);
-        }
-
-        public static TheoryData<DSigSerializerTheoryData> ReadTransformTheoryData
-        {
-            get
-            {
-                // uncomment to view exception displayed to user
-                // ExpectedException.DefaultVerbose = true;
-
-                return new TheoryData<DSigSerializerTheoryData>
-                {
-                    TransformTest(TransformTestSet.AlgorithmDefaultReferenceUri, null, true),
-                    TransformTest(TransformTestSet.Enveloped_AlgorithmMissing, new ExpectedException(typeof(XmlReadException), "IDX30105:")),
-                    TransformTest(TransformTestSet.AlgorithmNull, new ExpectedException(typeof(XmlReadException), "IDX30105:")),
-                    TransformTest(TransformTestSet.Enveloped_Valid_WithPrefix),
-                    TransformTest(TransformTestSet.Enveloped_Valid_WithoutPrefix),
-                    TransformTest(TransformTestSet.C14n_CanonicalizationMethod_WithComments, new ExpectedException(typeof(XmlReadException), "IDX30024:")),
-                    TransformTest(TransformTestSet.C14n_ElementNotValid, new ExpectedException(typeof(XmlReadException), "IDX30024:")),
-                    TransformTest(TransformTestSet.C14n_Transform_WithComments),
-                    TransformTest(TransformTestSet.C14n_Transform_WithoutNS),
-                    TransformTest(TransformTestSet.C14n_CanonicalizationMethod_WithComments, new ExpectedException(typeof(XmlReadException), "IDX30024:")),
-                    TransformTest(TransformTestSet.C14n_Transform_WithoutNS),
-                    TransformTest(TransformTestSet.TransformNull, new ExpectedException(typeof(XmlReadException), "IDX30105:")),
-                };
-            }
-        }
-
-        public static DSigSerializerTheoryData TransformTest(TransformTestSet testSet, ExpectedException expectedException = null, bool first = false)
-        {
-            return new DSigSerializerTheoryData
-            {
-                ExpectedException = expectedException ?? ExpectedException.NoExceptionExpected,
-                First = first,
-                TestId = testSet.TestId ?? nameof(testSet),
-                Transform = testSet.Transform,
-                Xml = testSet.Xml,
-            };
-        }
-
         [Theory, MemberData(nameof(ReadTransformsTheoryData))]
         public void ReadTransforms(DSigSerializerTheoryData theoryData)
         {
-            TestUtilities.WriteHeader($"{this}.ReadTransforms", theoryData);
-            var context = new CompareContext($"{this}.ReadTransforms, {theoryData.TestId}");
+            var context = TestUtilities.WriteHeader($"{this}.ReadTransform", theoryData);
             try
             {
-                var transforms = theoryData.Serializer.ReadTransforms(XmlUtilities.CreateDictionaryReader(theoryData.Xml));
+                var reference = new Reference();
+                theoryData.Serializer.ReadTransforms(XmlUtilities.CreateDictionaryReader(theoryData.Xml), reference);
                 theoryData.ExpectedException.ProcessNoException(context);
-                IdentityComparer.AreEqual(transforms, theoryData.Transforms, context);
+                IdentityComparer.AreEqual(reference.Transforms, theoryData.Transforms, context);
             }
             catch (Exception ex)
             {
@@ -482,6 +426,64 @@ namespace Microsoft.IdentityModel.Xml.Tests
         }
 
         public static TheoryData<DSigSerializerTheoryData> ReadTransformsTheoryData
+        {
+            get
+            {
+                // uncomment to view exception displayed to user
+                // ExpectedException.DefaultVerbose = true;
+
+                return new TheoryData<DSigSerializerTheoryData>
+                {
+                    TransformsTest(TransformTestSet.UnknownTransform, new ExpectedException(typeof(XmlReadException), "IDX14210:"), true),
+                    TransformsTest(TransformTestSet.Enveloped_AlgorithmMissing, new ExpectedException(typeof(XmlReadException), "IDX30105:")),
+                    TransformsTest(TransformTestSet.AlgorithmNull, new ExpectedException(typeof(XmlReadException), "IDX30105:")),
+                    TransformsTest(TransformTestSet.Enveloped_Valid_WithPrefix),
+                    TransformsTest(TransformTestSet.Enveloped_Valid_WithoutPrefix),
+                    TransformsTest(TransformTestSet.C14n_CanonicalizationMethod_WithComments, new ExpectedException(typeof(XmlReadException), "IDX30024:")),
+                    TransformsTest(TransformTestSet.C14n_ElementNotValid, new ExpectedException(typeof(XmlReadException), "IDX30024:")),
+                    TransformsTest(TransformTestSet.C14n_Transform_WithComments),
+                    TransformsTest(TransformTestSet.C14n_Transform_WithoutNS),
+                    TransformsTest(TransformTestSet.C14n_CanonicalizationMethod_WithComments, new ExpectedException(typeof(XmlReadException), "IDX30024:")),
+                    TransformsTest(TransformTestSet.C14n_Transform_WithoutNS),
+                    TransformsTest(TransformTestSet.TransformNull, new ExpectedException(typeof(XmlReadException), "IDX30105:")),
+                };
+            }
+        }
+
+        public static DSigSerializerTheoryData TransformsTest(TransformTestSet testSet, ExpectedException expectedException = null, bool first = false)
+        {
+            return new DSigSerializerTheoryData
+            {
+                ExpectedException = expectedException ?? ExpectedException.NoExceptionExpected,
+                First = first,
+                TestId = testSet.TestId,
+                Transform = testSet.Transform,
+                Transforms = new List<Transform> { testSet.Transform },
+                Xml = testSet.Xml,
+            };
+        }
+
+        [Theory, MemberData(nameof(ReadTransformTheoryData))]
+        public void ReadTransform(DSigSerializerTheoryData theoryData)
+        {
+            TestUtilities.WriteHeader($"{this}.ReadTransforms", theoryData);
+            var context = new CompareContext($"{this}.ReadTransforms, {theoryData.TestId}");
+            try
+            {
+                var reference = new Reference();
+                theoryData.Serializer.ReadTransforms(XmlUtilities.CreateDictionaryReader(theoryData.Xml), reference);
+                theoryData.ExpectedException.ProcessNoException(context);
+                IdentityComparer.AreEqual(reference, theoryData.Reference, context);
+            }
+            catch (Exception ex)
+            {
+                theoryData.ExpectedException.ProcessException(ex, context.Diffs);
+            }
+
+            TestUtilities.AssertFailIfErrors(context);
+        }
+
+        public static TheoryData<DSigSerializerTheoryData> ReadTransformTheoryData
         {
             get
             {
@@ -501,6 +503,7 @@ namespace Microsoft.IdentityModel.Xml.Tests
             {
                 ExpectedException = expectedException ?? ExpectedException.NoExceptionExpected,
                 First = first,
+                Reference = testSet.Reference,
                 TestId = testSet.TestId ?? nameof(testSet),
                 Transforms = testSet.Transforms,
                 Xml = testSet.Xml,
@@ -608,13 +611,13 @@ namespace Microsoft.IdentityModel.Xml.Tests
             return $"'{TestId}', '{ExpectedException}'";
         }
 
-        public string Transform
+        public Transform Transform
         {
             get;
             set;
         }
 
-        public IList<string> Transforms
+        public List<Transform> Transforms
         {
             get;
             set;

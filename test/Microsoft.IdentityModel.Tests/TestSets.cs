@@ -132,19 +132,18 @@ namespace Microsoft.IdentityModel.Tests
 
         private static string DSigPrefix { get => XmlSignatureConstants.PreferredPrefix + ":"; }
 
-        public string Transform
+        public Transform Transform
         {
             get;
             set;
         }
 
-        public static TransformTestSet AlgorithmDefaultReferenceUri
+        public static TransformTestSet UnknownTransform
         {
             get => new TransformTestSet
             {
-                TestId = nameof(AlgorithmDefaultReferenceUri),
-                Transform = Default.ReferenceUri,
-                Xml = XmlGenerator.TransformXml("", "Algorithm", Default.ReferenceUri.ToString(), "")
+                TestId = nameof(UnknownTransform),
+                Xml = XmlGenerator.TransformsXml(new List<string>{ XmlGenerator.TransformXml(DSigPrefix, "Algorithm", SecurityAlgorithms.Aes128CbcHmacSha256, "") })
             };
         }
 
@@ -153,7 +152,7 @@ namespace Microsoft.IdentityModel.Tests
             get => new TransformTestSet
             {
                 TestId = nameof(AlgorithmNull),
-                Xml = XmlGenerator.TransformXml("", "Algorithm", null, "")
+                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", null, "") })
             };
         }
 
@@ -162,7 +161,7 @@ namespace Microsoft.IdentityModel.Tests
             get => new TransformTestSet
             {
                 TestId = nameof(Enveloped_AlgorithmMissing),
-                Xml = XmlGenerator.TransformXml("", "_Algorithm", SecurityAlgorithms.EnvelopedSignature, "")
+                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, "_Algorithm", SecurityAlgorithms.EnvelopedSignature, "") })
             };
         }
 
@@ -170,8 +169,9 @@ namespace Microsoft.IdentityModel.Tests
         {
             get => new TransformTestSet
             {
-                Transform = SecurityAlgorithms.EnvelopedSignature,
-                Xml = XmlGenerator.TransformXml(DSigPrefix, "Algorithm", SecurityAlgorithms.EnvelopedSignature, DSigNS)
+                TestId = nameof(Enveloped_Valid_WithPrefix),
+                Transform = new EnvelopedSignatureTransform(),
+                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", SecurityAlgorithms.EnvelopedSignature, DSigNS) })
             };
         }
 
@@ -179,8 +179,9 @@ namespace Microsoft.IdentityModel.Tests
         {
             get => new TransformTestSet
             {
-                Transform = SecurityAlgorithms.EnvelopedSignature,
-                Xml = XmlGenerator.TransformXml("", "Algorithm", SecurityAlgorithms.EnvelopedSignature, DSigNS)
+                TestId = nameof(Enveloped_Valid_WithoutPrefix),
+                Transform = new EnvelopedSignatureTransform(),
+                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", SecurityAlgorithms.EnvelopedSignature, DSigNS) })
             };
         }
 
@@ -189,8 +190,7 @@ namespace Microsoft.IdentityModel.Tests
             get => new TransformTestSet
             {
                 TestId = nameof(C14n_CanonicalizationMethod_WithComments),
-                Transform = SecurityAlgorithms.ExclusiveC14nWithComments,
-                Xml = XmlGenerator.TransformXml(DSigPrefix, Elements.CanonicalizationMethod, "Algorithm", SecurityAlgorithms.ExclusiveC14nWithComments, DSigNS)
+                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, Elements.CanonicalizationMethod, "Algorithm", SecurityAlgorithms.ExclusiveC14nWithComments, DSigNS) })
             };
         }
 
@@ -199,8 +199,8 @@ namespace Microsoft.IdentityModel.Tests
             get => new TransformTestSet
             {
                 TestId = nameof(C14n_ElementNotValid),
-                Transform = SecurityAlgorithms.EnvelopedSignature,
-                Xml = XmlGenerator.TransformXml(DSigPrefix, Elements.DigestMethod, "Algorithm", SecurityAlgorithms.EnvelopedSignature, DSigNS)
+                Transform = new EnvelopedSignatureTransform(),
+                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, Elements.DigestMethod, "Algorithm", SecurityAlgorithms.EnvelopedSignature, DSigNS) })
             };
         }
 
@@ -208,8 +208,7 @@ namespace Microsoft.IdentityModel.Tests
         {
             get => new TransformTestSet
             {   TestId = nameof(C14n_Transform_WithComments),
-                Transform = SecurityAlgorithms.ExclusiveC14nWithComments,
-                Xml = XmlGenerator.TransformXml(DSigPrefix, Elements.Transform, "Algorithm", SecurityAlgorithms.ExclusiveC14nWithComments, DSigNS)
+                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, Elements.Transform, "Algorithm", SecurityAlgorithms.ExclusiveC14nWithComments, DSigNS) })
             };
         }
 
@@ -218,8 +217,7 @@ namespace Microsoft.IdentityModel.Tests
             get => new TransformTestSet
             {
                 TestId = nameof(C14n_Transform_WithoutNS),
-                Transform = SecurityAlgorithms.ExclusiveC14n,
-                Xml = XmlGenerator.TransformXml("", Elements.Transform, "Algorithm", SecurityAlgorithms.ExclusiveC14n, "")
+                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, Elements.Transform, "Algorithm", SecurityAlgorithms.ExclusiveC14n, "") })
             };
         }
         public static TransformTestSet TransformNull
@@ -227,7 +225,7 @@ namespace Microsoft.IdentityModel.Tests
             get => new TransformTestSet
             {
                 TestId = nameof(TransformNull),
-                Xml = XmlGenerator.TransformXml("", Elements.Transform, "Algorithm", null, "")
+                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, Elements.Transform, "Algorithm", null, "") })
             };
         }
     }
@@ -1108,7 +1106,13 @@ namespace Microsoft.IdentityModel.Tests
 
     public class TransformsTestSet : XmlTestSet
     {
-        public IList<string> Transforms
+        public Reference Reference
+        {
+            get;
+            set;
+        }
+
+        public List<Transform> Transforms
         {
             get;
             set;
@@ -1120,7 +1124,8 @@ namespace Microsoft.IdentityModel.Tests
             {
                 return new TransformsTestSet
                 {
-                    Transforms = new List<string>(),
+                    Reference = new Reference(),
+                    Transforms = new List<Transform>(),
                     TestId = nameof(TransformsEmpty),
                     Xml = "<Transforms/>"
                 };
