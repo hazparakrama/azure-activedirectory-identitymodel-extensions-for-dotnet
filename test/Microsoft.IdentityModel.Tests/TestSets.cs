@@ -138,12 +138,14 @@ namespace Microsoft.IdentityModel.Tests
             set;
         }
 
-        public static TransformTestSet UnknownTransform
+        public CanonicalizingTransfrom CanonicalizingTransfrom { get; set; }
+
+        public static TransformTestSet AlgorithmUnknown
         {
             get => new TransformTestSet
             {
-                TestId = nameof(UnknownTransform),
-                Xml = XmlGenerator.TransformsXml(new List<string>{ XmlGenerator.TransformXml(DSigPrefix, "Algorithm", SecurityAlgorithms.Aes128CbcHmacSha256, "") })
+                TestId = nameof(AlgorithmUnknown),
+                Xml = XmlGenerator.TransformsXml(DSigPrefix, new List<string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", SecurityAlgorithms.Aes128CbcHmacSha256, "") }, DSigNS)
             };
         }
 
@@ -152,80 +154,131 @@ namespace Microsoft.IdentityModel.Tests
             get => new TransformTestSet
             {
                 TestId = nameof(AlgorithmNull),
-                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", null, "") })
+                Xml = XmlGenerator.TransformsXml(DSigPrefix, new List <string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", null, "") }, DSigNS)
             };
         }
 
-        public static TransformTestSet Enveloped_AlgorithmMissing
+        public static TransformTestSet ElementUnknown
         {
             get => new TransformTestSet
             {
-                TestId = nameof(Enveloped_AlgorithmMissing),
-                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, "_Algorithm", SecurityAlgorithms.EnvelopedSignature, "") })
+                TestId = nameof(ElementUnknown),
+                Xml = XmlGenerator.TransformsXml(DSigPrefix, new List<string> { XmlGenerator.TransformXml(DSigPrefix, "ElementUnknown", "Algorithm", SecurityAlgorithms.Aes128CbcHmacSha256, "") }, DSigNS)
             };
         }
 
-        public static TransformTestSet Enveloped_Valid_WithPrefix
+        public static TransformTestSet Enveloped_AlgorithmAttributeMissing
         {
             get => new TransformTestSet
             {
-                TestId = nameof(Enveloped_Valid_WithPrefix),
+                TestId = nameof(Enveloped_AlgorithmAttributeMissing),
+                Xml = XmlGenerator.TransformsXml(DSigPrefix, new List<string> { XmlGenerator.TransformXml(DSigPrefix, "_Algorithm", SecurityAlgorithms.EnvelopedSignature, "") }, DSigNS)
+            };
+        }
+
+        public static TransformTestSet Enveloped
+        {
+            get => new TransformTestSet
+            {
+                TestId = nameof(Enveloped),
                 Transform = new EnvelopedSignatureTransform(),
-                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", SecurityAlgorithms.EnvelopedSignature, DSigNS) })
+                Xml = XmlGenerator.TransformsXml(DSigPrefix, new List<string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", SecurityAlgorithms.EnvelopedSignature, "") }, DSigNS)
             };
         }
 
-        public static TransformTestSet Enveloped_Valid_WithoutPrefix
+        public static TransformTestSet Enveloped_WithNS
         {
             get => new TransformTestSet
             {
-                TestId = nameof(Enveloped_Valid_WithoutPrefix),
+                TestId = nameof(Enveloped_WithNS),
                 Transform = new EnvelopedSignatureTransform(),
-                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", SecurityAlgorithms.EnvelopedSignature, DSigNS) })
+                Xml = XmlGenerator.TransformsXml(DSigPrefix,new List <string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", SecurityAlgorithms.EnvelopedSignature, DSigNS) }, DSigNS)
             };
         }
 
-        public static TransformTestSet C14n_CanonicalizationMethod_WithComments
+        public static TransformTestSet Enveloped_WithoutPrefix
         {
             get => new TransformTestSet
             {
-                TestId = nameof(C14n_CanonicalizationMethod_WithComments),
-                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, Elements.CanonicalizationMethod, "Algorithm", SecurityAlgorithms.ExclusiveC14nWithComments, DSigNS) })
-            };
-        }
-
-        public static TransformTestSet C14n_ElementNotValid
-        {
-            get => new TransformTestSet
-            {
-                TestId = nameof(C14n_ElementNotValid),
+                TestId = nameof(Enveloped_WithoutPrefix),
                 Transform = new EnvelopedSignatureTransform(),
-                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, Elements.DigestMethod, "Algorithm", SecurityAlgorithms.EnvelopedSignature, DSigNS) })
+                Xml = XmlGenerator.TransformsXml(DSigPrefix, new List <string> { XmlGenerator.TransformXml("", "Algorithm", SecurityAlgorithms.EnvelopedSignature, "") }, DSigNS)
             };
         }
 
-        public static TransformTestSet C14n_Transform_WithComments
-        {
-            get => new TransformTestSet
-            {   TestId = nameof(C14n_Transform_WithComments),
-                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, Elements.Transform, "Algorithm", SecurityAlgorithms.ExclusiveC14nWithComments, DSigNS) })
-            };
-        }
-
-        public static TransformTestSet C14n_Transform_WithoutNS
+        public static TransformTestSet C14n_WithComments
         {
             get => new TransformTestSet
             {
-                TestId = nameof(C14n_Transform_WithoutNS),
-                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, Elements.Transform, "Algorithm", SecurityAlgorithms.ExclusiveC14n, "") })
+                CanonicalizingTransfrom = new ExclusiveCanonicalizationTransform(true),
+                TestId = nameof(C14n_WithComments),
+                Xml = XmlGenerator.TransformsXml(DSigPrefix, new List<string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", SecurityAlgorithms.ExclusiveC14nWithComments, "") }, DSigNS)
             };
         }
+
+        public static TransformTestSet C14n_WithInclusivePrefix
+        {
+            get => new TransformTestSet
+            {
+                CanonicalizingTransfrom = new ExclusiveCanonicalizationTransform(true) { InclusivePrefixList = "#default saml ds xs xsi" },
+                TestId = nameof(C14n_WithInclusivePrefix),
+                Xml = XmlGenerator.TransformsXml(DSigPrefix, new List<string> { XmlGenerator.TransformWithInclusivePrefixXml(DSigPrefix, "Algorithm", SecurityAlgorithms.ExclusiveC14nWithComments, "", "<InclusiveNamespaces PrefixList=\"#default saml ds xs xsi\" xmlns=\"http://www.w3.org/2001/10/xml-exc-c14n#\" />" ) }, DSigNS)
+            };
+        }
+
+        public static TransformTestSet C14n_WithComments_WithoutPrefix
+        {
+            get => new TransformTestSet
+            {
+                TestId = nameof(C14n_WithComments_WithoutPrefix),
+                Xml = XmlGenerator.TransformsXml(DSigPrefix, new List<string> { XmlGenerator.TransformXml("", "Algorithm", SecurityAlgorithms.ExclusiveC14nWithComments, "") }, DSigNS)
+            };
+        }
+
+        public static TransformTestSet C14n_WithComments_WithNS
+        {
+            get => new TransformTestSet
+            {
+                CanonicalizingTransfrom = new ExclusiveCanonicalizationTransform(true),
+                TestId = nameof(C14n_WithComments_WithNS),
+                Xml = XmlGenerator.TransformsXml(DSigPrefix, new List<string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", SecurityAlgorithms.ExclusiveC14nWithComments, DSigNS) }, DSigNS)
+            };
+        }
+
+        public static TransformTestSet C14n_WithoutComments
+        {
+            get => new TransformTestSet
+            {
+                CanonicalizingTransfrom = new ExclusiveCanonicalizationTransform(false),
+                TestId = nameof(C14n_WithoutComments),
+                Xml = XmlGenerator.TransformsXml(DSigPrefix, new List<string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", SecurityAlgorithms.ExclusiveC14n, "") }, DSigNS)
+            };
+        }
+
+        public static TransformTestSet C14n_WithNS
+        {
+            get => new TransformTestSet
+            {
+                TestId = nameof(C14n_WithNS),
+                Xml = XmlGenerator.TransformsXml(DSigPrefix, new List<string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", SecurityAlgorithms.ExclusiveC14n, "") }, DSigNS)
+            };
+        }
+
+        public static TransformTestSet C14n_WithoutNS
+        {
+            get => new TransformTestSet
+            {
+                TestId = nameof(C14n_WithoutNS),
+                Xml = XmlGenerator.TransformsXml(DSigPrefix, new List<string> { XmlGenerator.TransformXml("", "Algorithm", SecurityAlgorithms.ExclusiveC14n, "") }, DSigNS)
+            };
+        }
+
         public static TransformTestSet TransformNull
         {
             get => new TransformTestSet
             {
                 TestId = nameof(TransformNull),
-                Xml = XmlGenerator.TransformsXml(new List<string> { XmlGenerator.TransformXml(DSigPrefix, Elements.Transform, "Algorithm", null, "") })
+                Xml = XmlGenerator.TransformsXml(DSigPrefix, new List<string> { XmlGenerator.TransformXml(DSigPrefix, "Algorithm", null, "") }, DSigNS)
             };
         }
     }
@@ -723,60 +776,18 @@ namespace Microsoft.IdentityModel.Tests
             set;
         }
 
-        public static SignatureTestSet EmptySignature
-        {
-            get
-            {
-                return new SignatureTestSet
-                {
-                    Signature = new Signature(),
-                    TestId = nameof(EmptySignature),
-                    Xml = "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"></Signature>"
-                };
-            }
-        }
-
-        public static SignatureTestSet DefaultSignature
-        {
-            get
-            {
-                return new SignatureTestSet
-                {
-                    Signature = Default.Signature,
-                    TestId = nameof(DefaultSignature),
-                    Xml = XmlGenerator.Generate(Default.Signature)
-                };
-            }
-        }
-
-        public static SignatureTestSet UnknownDigestAlgorithm
-        {
-            get
-            {
-                var signature = Default.Signature;
-                signature.SignedInfo.References[0].DigestMethod = $"_{SecurityAlgorithms.Sha256Digest}";
-
-                return new SignatureTestSet
-                {
-                    Signature = signature,
-                    TestId = nameof(UnknownDigestAlgorithm),
-                    Xml = XmlGenerator.Generate(Default.Signature).Replace(SecurityAlgorithms.Sha256Digest, $"_{SecurityAlgorithms.Sha256Digest}" )
-                };
-            }
-        }
-
         public static SignatureTestSet UnknownSignatureAlgorithm
         {
             get
             {
-                var signature = Default.Signature;
+                var signature = Default.SignatureNS;
                 signature.SignedInfo.SignatureMethod = $"_{SecurityAlgorithms.RsaSha256Signature}";
 
                 return new SignatureTestSet
                 {
                     Signature = signature,
                     TestId = nameof(UnknownSignatureAlgorithm),
-                    Xml = XmlGenerator.Generate(Default.Signature).Replace(SecurityAlgorithms.RsaSha256Signature, $"_{SecurityAlgorithms.RsaSha256Signature}" )
+                    Xml = XmlGenerator.Generate(Default.SignatureNS).Replace(SecurityAlgorithms.RsaSha256Signature, $"_{SecurityAlgorithms.RsaSha256Signature}" )
                 };
             }
         }
@@ -808,9 +819,6 @@ namespace Microsoft.IdentityModel.Tests
 
     public class SignedInfoTestSet : XmlTestSet
     {
-        // if the test set should only be created once, use a static to control this.
-        private static SignedInfoTestSet _signedInfo_ReferenceDigestValueNotBase64;
-
         public SignedInfo SignedInfo
         {
             get;
@@ -834,11 +842,13 @@ namespace Microsoft.IdentityModel.Tests
         {
             get
             {
+                var signedInfo = Default.SignedInfo;
+                signedInfo.References[0] = Default.ReferenceWithNullTokenStream;
                 return new SignedInfoTestSet
                 {
-                    SignedInfo = Default.SignedInfo,
+                    SignedInfo = signedInfo,
                     TestId = nameof(StartsWithWhiteSpace),
-                    Xml = "       " + XmlGenerator.Generate(Default.SignedInfo)
+                    Xml = "       " + XmlGenerator.Generate(signedInfo)
                 };
             }
         }
@@ -850,7 +860,7 @@ namespace Microsoft.IdentityModel.Tests
                 return new SignedInfoTestSet
                 {
                     TestId = nameof(CanonicalizationMethodMissing),
-                    Xml = XmlGenerator.Generate(Default.SignedInfo).Replace("CanonicalizationMethod", "_CanonicalizationMethod")
+                    Xml = XmlGenerator.Generate(Default.SignedInfoNS).Replace("CanonicalizationMethod", "_CanonicalizationMethod")
                 };
             }
         }
@@ -858,15 +868,14 @@ namespace Microsoft.IdentityModel.Tests
         {
             get
             {
-                if (_signedInfo_ReferenceDigestValueNotBase64 == null)
-                {
                     var digestValue = Guid.NewGuid().ToString();
-                    var reference = Default.ReferenceWithNullTokenStream;
+                    var reference = Default.ReferenceWithNullTokenStreamNS;
                     reference.DigestValue = digestValue;
-                    var signedInfo = Default.SignedInfo;
+                    var signedInfo = Default.SignedInfoNS;
                     signedInfo.References.Clear();
                     signedInfo.References.Add(reference);
-                    _signedInfo_ReferenceDigestValueNotBase64 = new SignedInfoTestSet
+                    signedInfo.Prefix = "";
+                    return new SignedInfoTestSet
                     {
                         SignedInfo = signedInfo,
                         TestId = nameof(ReferenceDigestValueNotBase64),
@@ -884,9 +893,6 @@ namespace Microsoft.IdentityModel.Tests
                                     Default.ReferenceDigestMethod,
                                     digestValue))
                     };
-                }
-
-                return _signedInfo_ReferenceDigestValueNotBase64;
             }
         }
 
@@ -897,7 +903,7 @@ namespace Microsoft.IdentityModel.Tests
                 return new SignedInfoTestSet
                 {
                     TestId = nameof(ReferenceMissing),
-                    Xml = XmlGenerator.Generate(Default.SignedInfo).Replace("Reference", "_Reference")
+                    Xml = XmlGenerator.Generate(Default.SignedInfoNS).Replace("Reference", "_Reference")
                 };
             }
         }
@@ -927,7 +933,7 @@ namespace Microsoft.IdentityModel.Tests
         {
             get
             {
-                var signedInfo = Default.SignedInfo;
+                var signedInfo = Default.SignedInfoNS;
                 signedInfo.References.Add(new Reference
                 {
                     DigestMethod = SecurityAlgorithms.Sha256Digest,
@@ -952,7 +958,7 @@ namespace Microsoft.IdentityModel.Tests
                 signedInfo.References.Add(new Reference
                 {
                     DigestMethod = SecurityAlgorithms.Sha256Digest,
-                    DigestValue = Default.ReferenceDigestValue
+                    DigestValue = Default.ReferenceDigestValue,
                 });
 
                 return new SignedInfoTestSet
@@ -968,8 +974,8 @@ namespace Microsoft.IdentityModel.Tests
         {
             get
             {
-                var signedInfo = Default.SignedInfo;
-                var reference = Default.ReferenceWithNullTokenStream;
+                var signedInfo = Default.SignedInfoNS;
+                var reference = Default.ReferenceWithNullTokenStreamNS;
                 var unknownTransform = "_http://www.w3.org/2000/09/xmldsig#enveloped-signature";
                 reference.Transforms.Clear();
                 reference.Transforms.Add(new EnvelopedSignatureTransform());
@@ -1005,7 +1011,7 @@ namespace Microsoft.IdentityModel.Tests
                 return new SignedInfoTestSet
                 {
                     TestId = nameof(MissingDigestMethod),
-                    Xml = XmlGenerator.Generate(Default.SignedInfo).Replace("DigestMethod", "_DigestMethod")
+                    Xml = XmlGenerator.Generate(Default.SignedInfoNS).Replace("DigestMethod", "_DigestMethod")
                 };
             }
         }
@@ -1017,7 +1023,7 @@ namespace Microsoft.IdentityModel.Tests
                 return new SignedInfoTestSet
                 {
                     TestId = nameof(MissingDigestValue),
-                    Xml = XmlGenerator.Generate(Default.SignedInfo).Replace("DigestValue", "_DigestValue")
+                    Xml = XmlGenerator.Generate(Default.SignedInfoNS).Replace("DigestValue", "_DigestValue")
                 };
             }
         }
@@ -1026,11 +1032,14 @@ namespace Microsoft.IdentityModel.Tests
         {
             get
             {
+                var signedInfo = Default.SignedInfo;
+                signedInfo.References[0] = Default.ReferenceWithNullTokenStream;
+
                 return new SignedInfoTestSet
                 {
-                    SignedInfo = Default.SignedInfo,
+                    SignedInfo = signedInfo,
                     TestId = nameof(Valid),
-                    Xml = XmlGenerator.Generate(Default.SignedInfo)
+                    Xml = XmlGenerator.Generate(signedInfo)
                 };
             }
         }
@@ -1042,8 +1051,8 @@ namespace Microsoft.IdentityModel.Tests
                 var signedInfo = new SignedInfo(Default.ReferenceWithNullTokenStream)
                 {
                     CanonicalizationMethod = SecurityAlgorithms.ExclusiveC14n,
-                    SignatureMethod = SecurityAlgorithms.RsaSha256Signature,
-                    Id = "SignedInfoFullyPopulated"
+                    Id = "SignedInfoFullyPopulated",
+                    SignatureMethod = SecurityAlgorithms.RsaSha256Signature
                 };
 
                 return new SignedInfoTestSet

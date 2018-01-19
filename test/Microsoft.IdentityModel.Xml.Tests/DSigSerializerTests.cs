@@ -46,14 +46,11 @@ namespace Microsoft.IdentityModel.Xml.Tests
         public void GetSets()
         {
             var dsigSerializer = new DSigSerializer();
-            TestUtilities.SetGet(dsigSerializer, "PreferredPrefix", (object)null, ExpectedException.ArgumentNullException("value"));
-
-            dsigSerializer = new DSigSerializer();
             var context = new GetSetContext
             {
                 PropertyNamesAndSetGetValue = new List<KeyValuePair<string, List<object>>>
                 {
-                    new KeyValuePair<string, List<object>>("PreferredPrefix", new List<object>{XmlSignatureConstants.PreferredPrefix, Guid.NewGuid().ToString(), Guid.NewGuid().ToString()}),
+                    new KeyValuePair<string, List<object>>("TransformFactory", new List<object>{TransformFactory.Default}),
                 },
                 Object = dsigSerializer
             };
@@ -175,8 +172,7 @@ namespace Microsoft.IdentityModel.Xml.Tests
         [Theory, MemberData(nameof(ReadSignatureTheoryData))]
         public void ReadSignature(DSigSerializerTheoryData theoryData)
         {
-            TestUtilities.WriteHeader($"{this}.ReadSignature", theoryData);
-            var context = new CompareContext($"{this}.ReadSignature, {theoryData.TestId}");
+            var context = TestUtilities.WriteHeader($"{this}.ReadSignature", theoryData);
             try
             {
                 var signature = theoryData.Serializer.ReadSignature(XmlUtilities.CreateDictionaryReader(theoryData.Xml));
@@ -195,16 +191,52 @@ namespace Microsoft.IdentityModel.Xml.Tests
         {
             get
             {
+
+                var signature = Default.Signature;
+                signature.SignedInfo.References[0] = Default.ReferenceWithNullTokenStream;
+
                 // uncomment to view exception displayed to user
                 // ExpectedException.DefaultVerbose = true;
-                return new TheoryData<DSigSerializerTheoryData>
+                var theoryData = new TheoryData<DSigSerializerTheoryData>
                 {
-                    SignatureTest(SignatureTestSet.DefaultSignature, null, true),
-                    SignatureTest(SignatureTestSet.UnknownDigestAlgorithm),
-                    SignatureTest(SignatureTestSet.UnknownSignatureAlgorithm),
-                    SignatureTest(SignatureTestSet.EmptySignature,
-                    new ExpectedException(typeof(XmlReadException), "IDX30022:")),
+                    new DSigSerializerTheoryData
+                    {
+                        First = true,
+                        Signature = signature,
+                        TestId = nameof(Default.Signature),
+                        Xml =  XmlGenerator.Generate(Default.Signature),
+                    }
                 };
+
+                signature = Default.Signature;
+                signature.SignedInfo.References[0] = Default.ReferenceWithNullTokenStream;
+                signature.SignedInfo.References[0].DigestMethod = $"_{SecurityAlgorithms.Sha256Digest}";
+                theoryData.Add(new DSigSerializerTheoryData
+                {
+                    Signature = signature,
+                    TestId = "UnknownDigestAlgorithm",
+                    Xml = XmlGenerator.Generate(Default.Signature).Replace(SecurityAlgorithms.Sha256Digest, $"_{SecurityAlgorithms.Sha256Digest}")
+                });
+
+                signature = Default.Signature;
+                signature.SignedInfo.References[0] = Default.ReferenceWithNullTokenStream;
+                signature.SignedInfo.SignatureMethod = $"_{SecurityAlgorithms.RsaSha256Signature}";
+                theoryData.Add(new DSigSerializerTheoryData
+                {
+                    Signature = signature,
+                    TestId = "UnknownSignatureAlgorithm",
+                    Xml = XmlGenerator.Generate(Default.Signature).Replace(SecurityAlgorithms.RsaSha256Signature, $"_{SecurityAlgorithms.RsaSha256Signature}")
+                });
+
+                theoryData.Add(new DSigSerializerTheoryData
+                {
+                    ExpectedException = new ExpectedException(typeof(XmlReadException), "IDX30022:"),
+                    Signature = new Signature(),
+                    TestId = "EmptySignature",
+                    Xml = "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"></Signature>"
+                });
+
+                return theoryData;
             }
         }
 
@@ -252,7 +284,7 @@ namespace Microsoft.IdentityModel.Xml.Tests
             return new DSigSerializerTheoryData
             {
                 ExpectedException = expectedException ?? ExpectedException.NoExceptionExpected,
-                First = first,
+                First = first,                
                 Signature = testSet.Signature,
                 TestId = testSet.TestId ?? nameof(testSet),
                 Xml = testSet.Xml,
@@ -301,7 +333,7 @@ namespace Microsoft.IdentityModel.Xml.Tests
                         new ExpectedException(typeof(XmlReadException), "IDX30011: Unable to read XML. Expecting XmlReader to be at ns.element: 'http://www.w3.org/2000/09/xmldsig#.Reference'")),
                     SignedInfoTest(SignedInfoTestSet.ReferenceDigestValueNotBase64),
                     SignedInfoTest(SignedInfoTestSet.UnknownReferenceTransform,
-                        new ExpectedException(typeof(XmlReadException), "IDX14210:")),
+                        new ExpectedException(typeof(XmlReadException), "IDX30210:")),
                     SignedInfoTest(SignedInfoTestSet.Valid),
                     SignedInfoTest(SignedInfoTestSet.SignedInfoEmpty,
                         new ExpectedException(typeof(XmlReadException), "IDX30022:"))
@@ -312,19 +344,18 @@ namespace Microsoft.IdentityModel.Xml.Tests
         [Theory, MemberData(nameof(WriteSignedInfoTheoryData))]
         public void WriteSignedInfo(DSigSerializerTheoryData theoryData)
         {
-            TestUtilities.WriteHeader($"{this}.WriteSignedInfo", theoryData);
-            var context = new CompareContext($"{this}.WriteSignedInfo, {theoryData.TestId}");
+            var context = TestUtilities.WriteHeader($"{this}.WriteSignedInfo", theoryData);
             try
             {
                 var signedInfo = theoryData.Serializer.ReadSignedInfo(XmlUtilities.CreateDictionaryReader(theoryData.Xml));
-                theoryData.ExpectedException.ProcessNoException(context.Diffs);
+                theoryData.ExpectedException.ProcessNoException(context);
                 IdentityComparer.AreEqual(signedInfo, theoryData.SignedInfo, context);
                 var ms = new MemoryStream();
                 var writer = XmlDictionaryWriter.CreateTextWriter(ms);
                 theoryData.Serializer.WriteSignedInfo(writer, signedInfo);
                 writer.Flush();
                 var xml = Encoding.UTF8.GetString(ms.ToArray());
-                IdentityComparer.AreEqual(theoryData.Xml, xml);
+                IdentityComparer.AreEqual(theoryData.Xml, xml, context);
             }
             catch (Exception ex)
             {
@@ -413,13 +444,15 @@ namespace Microsoft.IdentityModel.Xml.Tests
             try
             {
                 var reference = new Reference();
-                theoryData.Serializer.ReadTransforms(XmlUtilities.CreateDictionaryReader(theoryData.Xml), reference);
+                var reader = XmlUtilities.CreateDictionaryReader(theoryData.Xml);
+                theoryData.Serializer.ReadTransforms(reader, reference);
                 theoryData.ExpectedException.ProcessNoException(context);
                 IdentityComparer.AreEqual(reference.Transforms, theoryData.Transforms, context);
+                IdentityComparer.AreEqual(reference.CanonicalizingTransfrom, theoryData.CanonicalizingTransfrom, context);
             }
             catch (Exception ex)
             {
-                theoryData.ExpectedException.ProcessException(ex, context.Diffs);
+                theoryData.ExpectedException.ProcessException(ex, context);
             }
 
             TestUtilities.AssertFailIfErrors(context);
@@ -430,22 +463,24 @@ namespace Microsoft.IdentityModel.Xml.Tests
             get
             {
                 // uncomment to view exception displayed to user
-                // ExpectedException.DefaultVerbose = true;
+                ExpectedException.DefaultVerbose = true;
 
                 return new TheoryData<DSigSerializerTheoryData>
                 {
-                    TransformsTest(TransformTestSet.UnknownTransform, new ExpectedException(typeof(XmlReadException), "IDX14210:"), true),
-                    TransformsTest(TransformTestSet.Enveloped_AlgorithmMissing, new ExpectedException(typeof(XmlReadException), "IDX30105:")),
-                    TransformsTest(TransformTestSet.AlgorithmNull, new ExpectedException(typeof(XmlReadException), "IDX30105:")),
-                    TransformsTest(TransformTestSet.Enveloped_Valid_WithPrefix),
-                    TransformsTest(TransformTestSet.Enveloped_Valid_WithoutPrefix),
-                    TransformsTest(TransformTestSet.C14n_CanonicalizationMethod_WithComments, new ExpectedException(typeof(XmlReadException), "IDX30024:")),
-                    TransformsTest(TransformTestSet.C14n_ElementNotValid, new ExpectedException(typeof(XmlReadException), "IDX30024:")),
-                    TransformsTest(TransformTestSet.C14n_Transform_WithComments),
-                    TransformsTest(TransformTestSet.C14n_Transform_WithoutNS),
-                    TransformsTest(TransformTestSet.C14n_CanonicalizationMethod_WithComments, new ExpectedException(typeof(XmlReadException), "IDX30024:")),
-                    TransformsTest(TransformTestSet.C14n_Transform_WithoutNS),
-                    TransformsTest(TransformTestSet.TransformNull, new ExpectedException(typeof(XmlReadException), "IDX30105:")),
+                    TransformsTest(TransformTestSet.AlgorithmNull, new ExpectedException(typeof(XmlReadException), "IDX30105:"), true),
+                    TransformsTest(TransformTestSet.AlgorithmUnknown, new ExpectedException(typeof(XmlReadException), "IDX30210:")),
+                    TransformsTest(TransformTestSet.C14n_WithComments),
+                    TransformsTest(TransformTestSet.C14n_WithComments_WithoutPrefix, new ExpectedException(typeof(XmlReadException), "IDX30016:", typeof(System.Xml.XmlException))),
+                    TransformsTest(TransformTestSet.C14n_WithInclusivePrefix),
+                    TransformsTest(TransformTestSet.C14n_WithComments_WithNS),
+                    TransformsTest(TransformTestSet.C14n_WithoutComments),
+                    TransformsTest(TransformTestSet.C14n_WithoutNS, new ExpectedException(typeof(XmlReadException), "IDX30016:", typeof(System.Xml.XmlException))),
+                    TransformsTest(TransformTestSet.ElementUnknown, new ExpectedException(typeof(XmlReadException), "IDX30016:", typeof(System.Xml.XmlException))),
+                    TransformsTest(TransformTestSet.Enveloped),
+                    TransformsTest(TransformTestSet.Enveloped_AlgorithmAttributeMissing, new ExpectedException(typeof(XmlReadException), "IDX30105:")),
+                    TransformsTest(TransformTestSet.Enveloped_WithNS),
+                    TransformsTest(TransformTestSet.Enveloped_WithoutPrefix, new ExpectedException(typeof(XmlReadException), "IDX30016:", typeof(System.Xml.XmlException))),
+                    TransformsTest(TransformTestSet.TransformNull, new ExpectedException(typeof(XmlReadException), "IDX30105:"))
                 };
             }
         }
@@ -454,6 +489,7 @@ namespace Microsoft.IdentityModel.Xml.Tests
         {
             return new DSigSerializerTheoryData
             {
+                CanonicalizingTransfrom = testSet.CanonicalizingTransfrom,
                 ExpectedException = expectedException ?? ExpectedException.NoExceptionExpected,
                 First = first,
                 TestId = testSet.TestId,
@@ -515,7 +551,7 @@ namespace Microsoft.IdentityModel.Xml.Tests
         {
             var ms = new MemoryStream();
             var writer = XmlDictionaryWriter.CreateTextWriter(ms);
-            DSigSerializer.Default.WriteReference(writer, theoryData.Reference);
+            theoryData.Serializer.WriteReference(writer, theoryData.Reference);
             writer.Flush();
             var xml = Encoding.UTF8.GetString(ms.ToArray());
 
@@ -541,6 +577,12 @@ namespace Microsoft.IdentityModel.Xml.Tests
     public class DSigSerializerTheoryData : TheoryDataBase
     {
         public string Algorithm
+        {
+            get;
+            set;
+        }
+
+        public CanonicalizingTransfrom CanonicalizingTransfrom
         {
             get;
             set;
@@ -586,7 +628,7 @@ namespace Microsoft.IdentityModel.Xml.Tests
         {
             get;
             set;
-        } = DSigSerializer.Default;
+        } = new DSigSerializer();
 
         public Signature Signature
         {

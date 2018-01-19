@@ -39,9 +39,7 @@ namespace Microsoft.IdentityModel.Tokens.Xml.Tests
         [Theory, MemberData(nameof(GetTransformTestTheoryData))]
         public void GetTransformTest(TransformTheoryData theoryData)
         {
-            TestUtilities.WriteHeader($"{this}.GetTransformTest", theoryData);
-            var context = new CompareContext($"{this}.GetTransformTest, {theoryData.TestId}");
-
+            var context = TestUtilities.WriteHeader($"{this}.GetTransformTest", theoryData);
             var transformFactory = new TransformFactory();
             try
             {
@@ -64,7 +62,7 @@ namespace Microsoft.IdentityModel.Tokens.Xml.Tests
                 {
                     TestId = "Unsupported transform",
                     Algorithm = "Unsupported",
-                    ExpectedException = ExpectedException.NotSupportedException("IDX14210")
+                    ExpectedException = ExpectedException.NotSupportedException("IDX30210:")
                 },
                 new TransformTheoryData
                 {
@@ -77,9 +75,7 @@ namespace Microsoft.IdentityModel.Tokens.Xml.Tests
         [Theory, MemberData(nameof(GetCanonicalizingTransformTestTheoryData))]
         public void GetCanonicalizingTransformTest(TransformTheoryData theoryData)
         {
-            TestUtilities.WriteHeader($"{this}.GetCanonicalizingTransformTest", theoryData);
-            var context = new CompareContext($"{this}.GetCanonicalizingTransformTest, {theoryData.TestId}");
-
+            var context = TestUtilities.WriteHeader($"{this}.GetCanonicalizingTransformTest", theoryData);
             var transformFactory = new TransformFactory();
             try
             {
@@ -102,7 +98,7 @@ namespace Microsoft.IdentityModel.Tokens.Xml.Tests
                 {
                     TestId = "Unsupported transform",
                     Algorithm = "Unsupported",
-                    ExpectedException = ExpectedException.NotSupportedException("IDX14211:")
+                    ExpectedException = ExpectedException.NotSupportedException("IDX30211:")
                 },
                 new TransformTheoryData
                 {

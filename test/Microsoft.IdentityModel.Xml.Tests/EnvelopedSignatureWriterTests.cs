@@ -46,7 +46,7 @@ namespace Microsoft.IdentityModel.Tokens.Xml.Tests
             TestUtilities.WriteHeader($"{this}.Constructor", theoryData);
             try
             {
-                var envelopedWriter = new EnvelopedSignatureWriter(theoryData.XmlWriter, theoryData.SigningCredentials, theoryData.ReferenceId);
+                var envelopedWriter = new EnvelopedSignatureWriter(theoryData.XmlWriter, theoryData.SigningCredentials, theoryData.ReferenceId, theoryData.InclusivePrefixList);
                 theoryData.ExpectedException.ProcessNoException();
             }
             catch (Exception ex)
@@ -82,23 +82,24 @@ namespace Microsoft.IdentityModel.Tokens.Xml.Tests
             }
         }
 
-        [Theory, MemberData(nameof(WriteXmlTheoryData))]
-        public void WriteXml(EnvelopedSignatureTheoryData theoryData)
+        [Theory, MemberData(nameof(RoundTripSaml2TheoryData))]
+        public void RoundTripSaml2(EnvelopedSignatureTheoryData theoryData)
         {
-            TestUtilities.WriteHeader($"{this}.WriteXml", theoryData);
-            var context = new CompareContext($"{this}.WriteXml, {theoryData.TestId}");
+            var context = TestUtilities.WriteHeader($"{this}.WriteXml", theoryData);
             try
             {
-                var saml2Serializer = new Saml2Serializer();
-                var samlAssertion = saml2Serializer.ReadAssertion(XmlUtilities.CreateDictionaryReader(theoryData.Xml));
+                var serializer = new Saml2Serializer();
+                var samlAssertion = serializer.ReadAssertion(XmlUtilities.CreateDictionaryReader(theoryData.Xml));
                 var stream = new MemoryStream();
                 var writer = XmlDictionaryWriter.CreateTextWriter(stream);
                 samlAssertion.SigningCredentials = theoryData.SigningCredentials;
-                saml2Serializer.WriteAssertion(writer, samlAssertion);
+                serializer.WriteAssertion(writer, samlAssertion);
                 writer.Flush();
                 var xml = Encoding.UTF8.GetString(stream.ToArray());
-                var samlAssertion2 = saml2Serializer.ReadAssertion(XmlUtilities.CreateDictionaryReader(xml));
+                samlAssertion.SigningCredentials = null;
+                var samlAssertion2 = serializer.ReadAssertion(XmlUtilities.CreateDictionaryReader(xml));
                 samlAssertion2.Signature.Verify(theoryData.SigningCredentials.Key);
+                IdentityComparer.AreEqual(samlAssertion, samlAssertion2, context);
             }
             catch (Exception ex)
             {
@@ -108,7 +109,7 @@ namespace Microsoft.IdentityModel.Tokens.Xml.Tests
             TestUtilities.AssertFailIfErrors(context);
         }
 
-        public static TheoryData<EnvelopedSignatureTheoryData> WriteXmlTheoryData
+        public static TheoryData<EnvelopedSignatureTheoryData> RoundTripSaml2TheoryData
         {
             get
             {
@@ -118,7 +119,7 @@ namespace Microsoft.IdentityModel.Tokens.Xml.Tests
                     {
                         ReferenceId = Default.ReferenceUri,
                         SigningCredentials = Default.AsymmetricSigningCredentials,
-                        Xml =  ReferenceTokens.Saml2Token_Valid
+                        Xml =  ReferenceTokens.Saml2Token_Valid2
                     }
                 };
             }

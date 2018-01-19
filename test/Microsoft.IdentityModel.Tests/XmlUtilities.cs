@@ -67,7 +67,7 @@ namespace Microsoft.IdentityModel.Tests
         {
             using (var stream = new MemoryStream())
             {
-                var serailizer = DSigSerializer.Default;
+                var serailizer = new DSigSerializer();
                 var writer = XmlDictionaryWriter.CreateTextWriter(Stream.Null);
                 var includeComments = signedInfo.CanonicalizationMethod == SecurityAlgorithms.ExclusiveC14nWithComments;
                 writer.StartCanonicalization(stream, includeComments, null);
