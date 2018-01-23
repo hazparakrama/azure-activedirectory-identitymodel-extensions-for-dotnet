@@ -85,6 +85,10 @@ WriteSectionFooter("End Environment");
 
 $ErrorActionPreference = "Stop"
 
+Push-Location "$root/Tools/RegexAnalyzer"
+& $root/Tools/RegexAnalyzer\build.ps1
+Pop-Location
+
 if ($clean -eq "YES")
 {
     WriteSectionHeader("Clean");

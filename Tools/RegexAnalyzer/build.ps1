@@ -147,9 +147,9 @@ if ($build -eq "YES")
         }
     }
     
-    Write-Host ">>>" + $msbuildexe + "RegexAnalyzer.sln  /t:restore"
+    Write-Host ">>>" + $msbuildexe + "$root/RegexAnalyzer.sln  /t:restore"
     & $msbuildexe "RegexAnalyzer.sln" "/t:restore"
-    Write-Host ">>>" + $msbuildexe + "RegexAnalyzer.sln  /t:build"
+    Write-Host ">>>" + $msbuildexe + "$root/RegexAnalyzer.sln  /t:build"
     & $msbuildexe "RegexAnalyzer.sln" "/t:build"
 
     WriteSectionFooter("End Build");
@@ -178,11 +178,6 @@ if ($runTests -eq "YES")
                     Start-Process -wait -NoNewWindow $dotnetexe"restore $name.csproj"
                     Write-Host ">>> Start-Process -wait -passthru -NoNewWindow $msbuildexe 'test $name.csproj' -c $buildType"
                     $p = Start-Process -wait -passthru -NoNewWindow $dotnetexe "test $name.csproj -c $buildType"
-
-                    #Write-Host ">>>" + $msbuildexe + "$name.csproj /t:restore"
-                    #& $msbuildexe "$name.csproj" "/t:restore"
-                    #Write-Host ">>>" + $msbuildexe + "$name.csproj /t:VSTest /property:Configuration=Debug"
-                    #& $msbuildexe "$name.csproj" "/t:build"  "/property:Configuration=Debug"
                 }
                 else
                 {
