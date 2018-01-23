@@ -148,11 +148,9 @@ if ($build -eq "YES")
     }
     
     Write-Host ">>>" + $msbuildexe + "$root/RegexAnalyzer.sln  /t:restore"
-    #& $msbuildexe "RegexAnalyzer.sln" "/t:restore"
-	Start-Process -wait -NoNewWindow $dotnetexe "restore $root\RegexAnalyzer.sln"
+    & $msbuildexe "RegexAnalyzer.sln" "/t:restore"
     Write-Host ">>>" + $msbuildexe + "$root/RegexAnalyzer.sln  /t:build"
     & $msbuildexe "RegexAnalyzer.sln" "/t:build"
-	#Start-Process -wait -NoNewWindow $dotnetexe "build $root\RegexAnalyzer.sln"
 
     WriteSectionFooter("End Build");
 }
